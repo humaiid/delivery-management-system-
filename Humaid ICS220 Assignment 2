@@ -1,0 +1,215 @@
+from abc import ABC, abstractmethod
+from datetime import datetime
+
+# -------------------------------
+# Guest Module
+# -------------------------------
+
+class LoyaltyProgram:
+    """
+    Represents a guest's loyalty status and reward points.
+    """
+    def __init__(self):
+        self._points = 0  # Total points accumulated by the guest
+        self._rewards = []  # List of available rewards based on points
+
+    def add_points(self, points: int):
+        # Add points to the loyalty account
+        self._points += points
+
+    def redeem_points(self, amount: int):
+        # Check if points can be redeemed, and subtract if possible
+        if self._points >= amount:
+            self._points -= amount
+            return True
+        return False
+
+    def get_points(self):
+        # Getter for loyalty points
+        return self._points
+
+
+class Guest:
+    """
+    Represents a hotel guest with personal info and loyalty program.
+    """
+    def __init__(self, name: str, email: str, contact: str):
+        self._name = name
+        self._email = email
+        self._contact = contact
+        self._loyalty_program = LoyaltyProgram()  # Aggregated object
+        self._bookings = []  # List of bookings made by the guest
+
+    def create_account(self):
+        # Simulates account creation
+        return f"Account created for {self._name}"
+
+    def view_booking_history(self):
+        # Displays summary of all bookings made by this guest
+        return [booking.get_summary() for booking in self._bookings]
+
+    def add_booking(self, booking):
+        # Link a booking to this guest
+        self._bookings.append(booking)
+
+    def get_name(self):
+        # Getter for guest name
+        return self._name
+
+
+# ------------------------------
+# Room Module
+# ------------------------------
+
+class Room:
+    """
+    Represents a hotel room, with all its characteristics.
+    """
+    def __init__(self, room_no: str, room_type: str, amenities: list, price: float):
+        self._room_no = room_no  # Unique identifier for the room
+        self._room_type = room_type  # e.g., single, double, suite
+        self._amenities = amenities  # List of strings (e.g., WiFi, TV)
+        self._price = price  # Price per night
+        self._available = True  # Availability status
+
+    def is_available(self):
+        # Returns availability of the room
+        return self._available
+
+    def set_availability(self, status: bool):
+        # Update room's availability
+        self._available = status
+
+    def get_price(self):
+        # Getter for room price
+        return self._price
+
+
+# -------------------------------
+# Booking & Services Module
+# -------------------------------
+
+class ServiceRequest:
+    """
+    Represents guest's request during a stay, like cleaning or food.
+    """
+    def __init__(self, request_type: str):
+        self._type = request_type  # e.g., housekeeping, food delivery
+        self._status = "Pending"  # Initial status
+
+    def submit_request(self):
+        # Submit request for processing
+        self._status = "Submitted"
+
+    def get_status(self):
+        # Return the status of the service
+        return self._status
+
+
+class Feedback:
+    """
+    Represents review left by the guest after their stay.
+    """
+    def __init__(self, rating: int, comment: str):
+        self._rating = rating  # Rating from 1 to 5
+        self._comment = comment  # Optional comment
+
+    def submit_feedback(self):
+        # Return a formatted feedback string
+        return f"Rating: {self._rating}/5 - Comment: {self._comment}"
+
+
+class Booking:
+    """
+    Represents a booking with check-in and check-out, room, and services.
+    """
+    def __init__(self, guest: Guest, room: Room, check_in: str, check_out: str):
+        self._guest = guest
+        self._room = room
+        self._check_in = datetime.strptime(check_in, "%Y-%m-%d")
+        self._check_out = datetime.strptime(check_out, "%Y-%m-%d")
+        self._invoice = None
+        self._feedback = None
+        self._services = []  # List of service requests
+
+        # Update room availability and link booking to guest
+        self._room.set_availability(False)
+        self._guest.add_booking(self)
+
+    def add_service_request(self, request: ServiceRequest):
+        # Add a service request during the stay
+        request.submit_request()
+        self._services.append(request)
+
+    def add_feedback(self, feedback: Feedback):
+        # Attach guest feedback to booking
+        self._feedback = feedback
+
+    def generate_invoice(self, invoice):
+        # Assign an invoice to the booking
+        self._invoice = invoice
+
+    def get_summary(self):
+        # Return booking overview
+        return f"Booking for {self._guest.get_name()} from {self._check_in.date()} to {self._check_out.date()}"
+
+
+# -------------------------------
+# Invoice & Payment Modules
+# -------------------------------
+
+class Invoice:
+    """
+    Represents an invoice, with total calculation and charge breakdown.
+    """
+    def __init__(self, booking: Booking, extra_charges: float = 0.0, discount: float = 0.0):
+        nights = (booking._check_out - booking._check_in).days
+        self._details = f"{nights} nights @ {booking._room.get_price()} + Extra: {extra_charges}"
+        self._total = (nights * booking._room.get_price()) + extra_charges - discount
+
+    def get_total(self):
+        # Getter for invoice total
+        return self._total
+
+    def get_details(self):
+        # Return a string that explains how total was calculated
+        return self._details
+
+
+class Payment(ABC):
+    """
+    Abstract base class for payments (polymorphic design).
+    """
+    def __init__(self, amount: float):
+        self._amount = amount
+
+    @abstractmethod
+    def pay(self):
+        # To be implemented by child classes
+        pass
+
+
+class CardPayment(Payment):
+    """
+    Payment by credit or debit card.
+    """
+    def __init__(self, amount: float, card_number: str):
+        super().__init__(amount)
+        self._card_number = card_number
+
+    def pay(self):
+        # Simulate card payment
+        return f"Paid {self._amount} using Card: {self._card_number}"
+
+
+class WalletPayment(Payment):
+    """
+    Payment by mobile wallet (e.g., Apple Pay, Google Pay).
+    """
+    def __init__(self, amount: float, wallet_id: str):
+        super().__init__(amount)
+        self._wallet_id = wallet_id
+
+    def pay(self):
+        # Simulate wallet payment
+        return f"Paid {self._amount} using Wallet ID: {self._wallet_id}"
