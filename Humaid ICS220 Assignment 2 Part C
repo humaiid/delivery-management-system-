@@ -1,0 +1,160 @@
+# ----------------------------------------------
+# Full Test Cases (Self-contained for execution)
+# ----------------------------------------------
+
+# All required classes redefined here for direct test execution.
+# In practice, these should be imported from `royalstay_classes.py`
+
+from abc import ABC, abstractmethod
+from datetime import datetime
+
+# ========== Class Definitions ==========
+
+class LoyaltyProgram:
+    def __init__(self):
+        self._points = 0
+        self._rewards = []
+
+    def add_points(self, points: int):
+        self._points += points
+
+    def redeem_points(self, amount: int):
+        if self._points >= amount:
+            self._points -= amount
+            return True
+        return False
+
+    def get_points(self):
+        return self._points
+
+
+class Guest:
+    def __init__(self, name: str, email: str, contact: str):
+        self._name = name
+        self._email = email
+        self._contact = contact
+        self._loyalty_program = LoyaltyProgram()
+        self._bookings = []
+
+    def create_account(self):
+        return f"Account created for {self._name}"
+
+    def view_booking_history(self):
+        return [booking.get_summary() for booking in self._bookings]
+
+    def add_booking(self, booking):
+        self._bookings.append(booking)
+
+    def get_name(self):
+        return self._name
+
+
+class Room:
+    def __init__(self, room_no: str, room_type: str, amenities: list, price: float):
+        self._room_no = room_no
+        self._room_type = room_type
+        self._amenities = amenities
+        self._price = price
+        self._available = True
+
+    def is_available(self):
+        return self._available
+
+    def set_availability(self, status: bool):
+        self._available = status
+
+    def get_price(self):
+        return self._price
+
+
+class ServiceRequest:
+    def __init__(self, request_type: str):
+        self._type = request_type
+        self._status = "Pending"
+
+    def submit_request(self):
+        self._status = "Submitted"
+
+    def get_status(self):
+        return self._status
+
+
+class Feedback:
+    def __init__(self, rating: int, comment: str):
+        self._rating = rating
+        self._comment = comment
+
+    def submit_feedback(self):
+        return f"Rating: {self._rating}/5 - Comment: {self._comment}"
+
+
+class Booking:
+    def __init__(self, guest: Guest, room: Room, check_in: str, check_out: str):
+        self._guest = guest
+        self._room = room
+        self._check_in = datetime.strptime(check_in, "%Y-%m-%d")
+        self._check_out = datetime.strptime(check_out, "%Y-%m-%d")
+        self._invoice = None
+        self._feedback = None
+        self._services = []
+
+        self._room.set_availability(False)
+        self._guest.add_booking(self)
+
+    def add_service_request(self, request: ServiceRequest):
+        request.submit_request()
+        self._services.append(request)
+
+    def add_feedback(self, feedback: Feedback):
+        self._feedback = feedback
+
+    def generate_invoice(self, invoice):
+        self._invoice = invoice
+
+    def get_summary(self):
+        return f"Booking for {self._guest.get_name()} from {self._check_in.date()} to {self._check_out.date()}"
+
+
+class Invoice:
+    def __init__(self, booking: Booking, extra_charges: float = 0.0, discount: float = 0.0):
+        nights = (booking._check_out - booking._check_in).days
+        self._details = f"{nights} nights @ {booking._room.get_price()} + Extra: {extra_charges}"
+        self._total = (nights * booking._room.get_price()) + extra_charges - discount
+
+    def get_total(self):
+        return self._total
+
+    def get_details(self):
+        return self._details
+
+
+class Payment(ABC):
+    def __init__(self, amount: float):
+        self._amount = amount
+
+    @abstractmethod
+    def pay(self):
+        pass
+
+
+class CardPayment(Payment):
+    def __init__(self, amount: float, card_number: str):
+        super().__init__(amount)
+        self._card_number = card_number
+
+    def pay(self):
+        return f"Paid {self._amount} using Card: {self._card_number}"
+
+
+class WalletPayment(Payment):
+    def __init__(self, amount: float, wallet_id: str):
+        super().__init__(amount)
+        self._wallet_id = wallet_id
+
+    def pay(self):
+        return f"Paid {self._amount} using Wallet ID: {self._wallet_id}"
+
+
+# ========== Test Cases Continue Below (Unchanged) ==========
+
+# --- Original test logic continues here without import error ---
